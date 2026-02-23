@@ -9,7 +9,7 @@ Base = declarative_base()
 
 
 def get_db():
-    """Dependency für FastAPI: liefert eine SQLAlchemy Session und schließt sie nach Gebrauch."""
+    #Dependency für FastAPI: liefert eine SQLAlchemy Session und schließt sie nach Gebrauch.
     db = SessionLocal()
     try:
         yield db

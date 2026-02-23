@@ -1,5 +1,5 @@
 from datetime import datetime
-import re
+from pydoc import importfile
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -9,13 +9,9 @@ from sqlalchemy.orm import Session
 from app.db.models import Scan
 from app.db.session import get_db
 
-from urllib.parse import urlsplit
-
-
-MAX_INPUT_LENGTH = 200
+from app.scanner.security import validate_domain, sanitize_input
 
 router = APIRouter()
-
 
 class ScanRequest(BaseModel):
     domain: str
@@ -35,40 +31,11 @@ class ScanDetailResponse(BaseModel):
     result_json: str | None
     warning: str | None
 
-def sanitize_input(raw: str) -> str:
-    if not raw:
-        return ""
-
-    # Trim and lowercase
-    cleaned = raw.strip().lower()
-
-    # Remove control characters (ASCII < 32 and DEL)
-    cleaned = re.sub(r"[\x00-\x1F\x7F]", "", cleaned)
-
-    # Normalize whitespace (multiple spaces -> single space)
-    cleaned = re.sub(r"\s+", " ", cleaned)
-
-    # Enforce max length
-    if len(cleaned) > MAX_INPUT_LENGTH:
-        cleaned = cleaned[:MAX_INPUT_LENGTH]
-
-    return cleaned
-
 
 def normalize_input(input: str) -> str:
     input_sanitized = sanitize_input(input)
-    
-    parsed_input = urlsplit(input_sanitized)
-
-    if parsed_input.username or parsed_input.password:
-        raise ValueError("Username or password in domain not allowed")
-
-    domain = parsed_input.hostname
-    if not domain:
-        raise ValueError("Invalid domain")
-
+    domain = validate_domain(input_sanitized)
     return [domain, input_sanitized]
-
 
 
 @router.post("/scan", response_model=ScanResponse)
@@ -98,6 +65,9 @@ def create_scan(request: ScanRequest, db: Session = Depends(get_db)):
     db.add(scan)
     db.commit()
     db.refresh(scan)
+
+    #scan engine
+    
     
     return ScanResponse(scan_id=scan_id, status="queued")
 
