@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.db.models import Scan
 from app.db.session import get_db
 
-from app.scanner.security import validate_domain, sanitize_input
+from app.scanner.security import validate_input, sanitize_input
 
 router = APIRouter()
 
@@ -34,7 +34,7 @@ class ScanDetailResponse(BaseModel):
 
 def normalize_input(input: str) -> str:
     input_sanitized = sanitize_input(input)
-    domain = validate_domain(input_sanitized)
+    domain = validate_input(input_sanitized)
     return [domain, input_sanitized]
 
 
@@ -67,7 +67,7 @@ def create_scan(request: ScanRequest, db: Session = Depends(get_db)):
     db.refresh(scan)
 
     #scan engine
-    
+
     
     return ScanResponse(scan_id=scan_id, status="queued")
 

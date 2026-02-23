@@ -1,5 +1,6 @@
 from urllib.parse import urlsplit
 import ipaddress
+from socket import getaddrinfo
 import re
 
 
@@ -24,7 +25,7 @@ def sanitize_input(raw: str) -> str:
 
     return cleaned
 
-def validate_domain(input_sanitized: str) -> str:
+def validate_input(input_sanitized: str) -> str:
     parsed_input = urlsplit(input_sanitized)
 
     if parsed_input.username or parsed_input.password:
@@ -44,5 +45,29 @@ def validate_domain(input_sanitized: str) -> str:
         pass
         
     return domain
+
+
+def resolve_domain(domain: str) -> str:
+    ip = ipaddress.ip_address(getaddrinfo(domain))
+
+    if ip.is_loopback:
+        raise ValueError("loopback IP address not allowed")
+    
+    if ip.is_private:
+        raise ValueError("private IP address not allowed")
+    
+    if ip.is_link_local:
+        raise ValueError("local link IP address not allowed")
+    
+    if ip.is_multicast:
+        raise ValueError("multicast IP address not allowed")
+    
+    if ip.is_reserved:
+        raise ValueError("reserved IP address not allowed")
+
+    if ip.is_unspecified:
+        raise ValueError("unspecified IP address not allowed")
+    
+    return ip
 
 
