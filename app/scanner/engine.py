@@ -4,7 +4,7 @@ import httpx
 from app.scanner.security import resolve_validate_domain, validate_input
 from urllib.parse import urljoin, urlsplit
 
-
+# TODO: Add pydantic model for response data and error handling
 
 def make_request(domain):
     redirect_status = {301, 302, 303, 307, 308}
@@ -21,6 +21,7 @@ def make_request(domain):
             r = client.head(current_url)
 
             # Follow and track redirects
+            # TODO: Track and save visited urls and their responses
             while r.status_code in redirect_status and redirect_count < client.max_redirects:
                 location = r.headers.get("location")
                 if not location:
