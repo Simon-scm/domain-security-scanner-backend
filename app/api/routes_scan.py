@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.db.models import Scan
 from app.db.session import get_db
 
+from urllib.parse import urlsplit
 from app.scanner.security import validate_input, sanitize_input
 
 router = APIRouter()

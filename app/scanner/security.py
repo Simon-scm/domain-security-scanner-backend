@@ -1,6 +1,6 @@
 from urllib.parse import urlsplit
+import socket
 import ipaddress
-from socket import getaddrinfo
 import re
 
 
@@ -30,6 +30,12 @@ def validate_input(input_sanitized: str) -> str:
 
     if parsed_input.username or parsed_input.password:
         raise ValueError("Username or password in domain not allowed")
+    
+    if parsed_input.port is not None:
+        raise ValueError("ports not allowed")
+    
+    if parsed_input.scheme and parsed_input.scheme not in {"http", "https"}:
+        raise ValueError("only http and https scheme allowed")
 
     domain = parsed_input.hostname
     if not domain:
@@ -40,34 +46,47 @@ def validate_input(input_sanitized: str) -> str:
 
     try:
         ip = ipaddress.ip_address(domain)
-        ValueError("IP Address not allowed")
-    except:
+        raise ValueError("IP Address as input not allowed")
+    except ValueError:
         pass
         
     return domain
 
 
-def resolve_domain(domain: str) -> str:
-    ip = ipaddress.ip_address(getaddrinfo(domain))
+def resolve_validate_domain(domain: str) -> set:
 
-    if ip.is_loopback:
-        raise ValueError("loopback IP address not allowed")
-    
-    if ip.is_private:
-        raise ValueError("private IP address not allowed")
-    
-    if ip.is_link_local:
-        raise ValueError("local link IP address not allowed")
-    
-    if ip.is_multicast:
-        raise ValueError("multicast IP address not allowed")
-    
-    if ip.is_reserved:
-        raise ValueError("reserved IP address not allowed")
+    try:
+        sock = socket.getaddrinfo(domain, None, proto=socket.IPPROTO_TCP)
+    except socket.gaierror:
+        raise ValueError("domain resolution failed")
 
-    if ip.is_unspecified:
-        raise ValueError("unspecified IP address not allowed")
+    ips = set()
+    for entry in sock:
+        sockaddr = entry[4]
+        ip = sockaddr[0]
+        ips.add(ip)
+
+    for ip in ips:
+        current_ip = ipaddress.ip_address(ip)
+
+        if current_ip.is_loopback:
+            raise ValueError("loopback IP address not allowed")
+        
+        if current_ip.is_private:
+            raise ValueError("private IP address not allowed")
+        
+        if current_ip.is_link_local:
+            raise ValueError("local link IP address not allowed")
+        
+        if current_ip.is_multicast:
+            raise ValueError("multicast IP address not allowed")
+        
+        if current_ip.is_reserved:
+            raise ValueError("reserved IP address not allowed")
+
+        if current_ip.is_unspecified:
+            raise ValueError("unspecified IP address not allowed")
     
-    return ip
+    return ips
 
 
